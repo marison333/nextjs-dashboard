@@ -4,8 +4,6 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import {Simulate} from "react-dom/test-utils";
-import error = Simulate.error;
 
 const FormSchema = z.object({
     id: z.string(),
@@ -14,29 +12,6 @@ const FormSchema = z.object({
     status: z.enum(['pending', 'paid']),
     date: z.string(),
 });
-
-export async function updateInvoice(id: string, formData: FormData) {
-    const { customerId, amount, status } = UpdateInvoice.parse({
-        customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
-        status: formData.get('status'),
-    });
-
-    const amountInCents = amount * 100;
-
-    try {
-        await sql`
-        UPDATE invoices
-        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-        WHERE id = ${id}
-      `;
-    } catch (error) {
-        return { message: 'Database Error: Failed to Update Invoice.' };
-    }
-
-    revalidatePath('/dashboard/invoices');
-    redirect('/dashboard/invoices');
-}
 
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
@@ -59,6 +34,30 @@ export async function createInvoice(formData: FormData) {
         return {
             message: 'Database Error: Failed to Create Invoice.',
         };
+    }
+
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
+}
+const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
+export async function updateInvoice(id: string, formData: FormData) {
+    const { customerId, amount, status } = UpdateInvoice.parse({
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+    });
+
+    const amountInCents = amount * 100;
+
+    try {
+        await sql`
+        UPDATE invoices
+        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+        WHERE id = ${id}
+      `;
+    } catch (error) {
+        return { message: 'Database Error: Failed to Update Invoice.' };
     }
 
     revalidatePath('/dashboard/invoices');
